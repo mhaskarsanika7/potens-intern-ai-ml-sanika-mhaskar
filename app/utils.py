@@ -1,16 +1,3 @@
-"""
-utils.py
---------
-Small, dependency-light helpers used by both ingest.py and rag.py:
-
-  * PDF -> per-page text extraction
-  * text -> overlapping chunks (the "chunking strategy")
-  * language detection (used by the multilingual flow)
-
-Kept separate from rag.py so ingest.py doesn't need to import the
-(heavier) Gemini client just to chunk text.
-"""
-
 import re
 from dataclasses import dataclass
 from typing import List
