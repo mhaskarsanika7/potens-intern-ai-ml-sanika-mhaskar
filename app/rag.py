@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from typing import List, Dict, Optional
 
@@ -119,46 +120,80 @@ Rules (follow all of them):
    question, you MUST say so explicitly and clearly - do not guess, and
    do not partially answer with unsupported filler. Say something like:
    "The provided documents do not cover this."
-3. For every factual claim you make, cite the chunk id(s) it came from in
-   square brackets, e.g. [handbook.pdf::p3::c1].
-4. Answer in this language: {answer_language}. Translate content as needed,
-   but keep the bracketed chunk-id citations in their original form.
+3. For every factual claim you make, cite the exact chunk id(s) it came
+   from in square brackets, copied exactly as shown in the CONTEXT, e.g.
+   [handbook.pdf::p3::c1]. Only cite chunks you actually used - do not
+   cite a chunk just because it was provided if you didn't use it.
+4. Answer in the same language the QUESTION was written in. Judge the
+   QUESTION's language yourself directly - do not rely on any language
+   hint elsewhere. Translate context content as needed, but keep the
+   bracketed chunk-id citations in their original form (do not translate
+   the citation tags themselves).
 5. Be concise. Do not repeat the context verbatim; synthesize it.
+
+Respond in EXACTLY this structure, with nothing before or after it:
+
+LANGUAGE: <ISO 639-1 two-letter code for the language the QUESTION was written in>
+ANSWER: <your answer, written entirely in that language, with bracketed citations>
 
 CONTEXT:
 {context}
 
 QUESTION:
 {question}
-
-ANSWER:
 """
 
 
+def _parse_structured_answer(raw: str) -> Dict[str, str]:
+    """Pulls LANGUAGE and ANSWER out of the model's structured response.
+    Falls back gracefully if the model doesn't follow the format exactly
+    (e.g. adds stray text), so a formatting slip never turns into a
+    crash for the user."""
+    lang_match = re.search(r"LANGUAGE:\s*([a-zA-Z-]+)", raw)
+    answer_match = re.search(r"ANSWER:\s*(.*)", raw, re.DOTALL)
+    language = lang_match.group(1).strip().lower() if lang_match else "en"
+    answer = answer_match.group(1).strip() if answer_match else raw.strip()
+    return {"language": language, "answer": answer}
+
+
+def _extract_cited_chunk_ids(answer_text: str) -> set:
+    """Finds every chunk id the model actually put in brackets in its
+    answer (comma-separated ids within one bracket are supported), so we
+    can show only the citations that were really used - not every chunk
+    that happened to be retrieved."""
+    cited = set()
+    for bracket in re.findall(r"\[([^\]]+)\]", answer_text):
+        for part in bracket.split(","):
+            part = part.strip()
+            if re.match(r"^[^:\s]+::p\d+::c\d+$", part):
+                cited.add(part)
+    return cited
+
+
 def answer_query(query: str, k: int = 8, source_filter: Optional[str] = None) -> Dict:
-    lang = detect_language(query)
     hits = retrieve(query, k=k, source_filter=source_filter)
 
     if not hits:
         return {
             "answer": "The provided documents do not cover this question (no relevant content found).",
             "citations": [],
-            "language": lang,
+            "language": detect_language(query),
             "grounded": False,
         }
 
     context = _format_context(hits)
-    prompt = ANSWER_PROMPT_TEMPLATE.format(
-        answer_language=lang, context=context, question=query
-    )
-    answer_text = _call_gemini(prompt)
+    prompt = ANSWER_PROMPT_TEMPLATE.format(context=context, question=query)
+    raw = _call_gemini(prompt)
+    parsed = _parse_structured_answer(raw)
 
-    # Anti-hallucination check: did the model actually cite anything, or
-    # did it fall back to the "not covered" language? Either is a valid,
-    # non-hallucinated outcome; we just surface which one happened plus
-    # the chunks it *could* have used, so the UI can show its work.
-    grounded = "[" in answer_text and "]" in answer_text
+    cited_ids = _extract_cited_chunk_ids(parsed["answer"])
+    # Anti-hallucination signal: did the model actually cite a chunk id
+    # that we really retrieved, or did it fall back to "not covered"?
+    grounded = len(cited_ids) > 0
 
+    # Only surface chunks the model actually cited - showing every
+    # retrieved-but-unused chunk as a "citation" would be misleading,
+    # since retrieval always returns its top-k regardless of relevance.
     citations = [
         {
             "source_file": h["source_file"],
@@ -167,12 +202,13 @@ def answer_query(query: str, k: int = 8, source_filter: Optional[str] = None) ->
             "snippet": h["text"][:280] + ("..." if len(h["text"]) > 280 else ""),
         }
         for h in hits
+        if h["chunk_id"] in cited_ids
     ]
 
     return {
-        "answer": answer_text,
+        "answer": parsed["answer"],
         "citations": citations,
-        "language": lang,
+        "language": parsed["language"],
         "grounded": grounded,
     }
 
