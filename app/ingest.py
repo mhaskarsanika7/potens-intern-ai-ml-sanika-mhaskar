@@ -1,18 +1,3 @@
-"""
-ingest.py
----------
-One-shot ingestion script: reads every PDF in ../docs, chunks it
-(see utils.chunk_page for the strategy), embeds each chunk with Gemini's
-text-embedding-004, and upserts into a persistent Chroma collection.
-
-Run:
-    cd app
-    python ingest.py
-
-Safe to re-run: it deletes and rebuilds the collection each time, so
-re-running after adding/removing a PDF in docs/ keeps the index in sync
-rather than silently accumulating stale chunks.
-"""
 
 import os
 import sys
