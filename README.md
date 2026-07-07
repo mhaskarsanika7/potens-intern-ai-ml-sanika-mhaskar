@@ -1,5 +1,3 @@
-# Document Q&A with Citations (RAG over PDFs)
+# potens-intern-ai-ml-sanika-mhaskar
+AI-powered RAG application for document question answering with source citations and multilingual support.
 
-A retrieval-augmented Q&A system over a small set of PDFs, with grounded
-citations, cross-document contradiction detection, and a multilingual
-query/answer flow. Built for the Potens.ai take-home (Q1).
