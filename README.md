@@ -25,6 +25,7 @@ app/
   api.py      → FastAPI wrapper exposing /ask and /contradict
   ui.py       → Streamlit app (the easiest way to try this)
   utils.py    → PDF reading, chunking, language detection
+scripts/      → make_sample_docs.py → generates 5 test PDFs if you don't have your own
 docs/         → put your PDFs here
 chroma_db/    → the vector database (built automatically, gitignored)
 .env          → your GOOGLE_API_KEY (gitignored)
