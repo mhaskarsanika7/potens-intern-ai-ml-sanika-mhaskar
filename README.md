@@ -172,6 +172,6 @@ Each PDF page is broken into small overlapping pieces of text ("chunks") before 
 
 ## AI USE LOG
 
-- Claude (Anthropic): ~[4] — architecture, all app code, SDK migration debugging.
+- Claude (Anthropic): ~[45000] — architecture, all app code, SDK migration debugging.
 
-- ChatGPT: ~[40] — problem understanding, project working flow, project structure
+- ChatGPT: ~[8000] — problem understanding, project working flow, project structure
