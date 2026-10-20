@@ -187,8 +187,9 @@ def answer_query(query: str, k: int = 8, source_filter: Optional[str] = None) ->
     parsed = _parse_structured_answer(raw)
 
     cited_ids = _extract_cited_chunk_ids(parsed["answer"])
-    # Anti-hallucination signal: did the model actually cite a chunk id
-    # that we really retrieved, or did it fall back to "not covered"?
+    retrieved_ids = {h["chunk_id"] for h in hits}
+    cited_ids.intersection_update(retrieved_ids)
+    # Only citations to retrieved chunks count as grounding.
     grounded = len(cited_ids) > 0
 
     # Only surface chunks the model actually cited - showing every

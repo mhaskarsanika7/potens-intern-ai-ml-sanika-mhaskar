@@ -67,8 +67,7 @@ def chunk_page(
         for precise retrieval, large enough to keep a claim and its
         immediate justification together.
       - Overlap the last 2 sentences of a chunk into the start of the
-        next chunk, so a claim that happens to sit on a chunk boundary
-        is still fully retrievable from either neighbor.
+        next chunk when doing so still makes progress.
       - Chunking is done per-page (not across page breaks) so every
         chunk maps cleanly to exactly one page number for citation.
     """
@@ -80,9 +79,10 @@ def chunk_page(
     current: List[str] = []
     current_len = 0
     chunk_index = 0
+    has_new_sentence = False
 
     def flush():
-        nonlocal current, current_len, chunk_index
+        nonlocal current, current_len, chunk_index, has_new_sentence
         if not current:
             return
         text = " ".join(current)
@@ -97,18 +97,21 @@ def chunk_page(
             )
         )
         chunk_index += 1
+        has_new_sentence = False
 
     for sentence in sentences:
         current.append(sentence)
         current_len += len(sentence) + 1
+        has_new_sentence = True
         if current_len >= target_chars:
             flush()
             # seed next chunk with overlap from the tail of this one
-            current = current[-overlap_sentences:] if len(current) > overlap_sentences else current[:]
+            overlap_count = min(overlap_sentences, max(0, len(current) - 1))
+            current = current[-overlap_count:] if overlap_count else []
             current_len = sum(len(s) + 1 for s in current)
 
     # flush whatever remains (final partial chunk)
-    if current:
+    if current and has_new_sentence:
         flush()
 
     return chunks

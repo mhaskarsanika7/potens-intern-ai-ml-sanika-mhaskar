@@ -33,15 +33,23 @@ chroma_db/    → the vector database (built automatically, gitignored)
 
 ## How to run it
 
+Use 64-bit Python 3.12 for this pinned dependency set. In particular,
+`chromadb==0.5.5` may resolve to a NumPy release without a compatible
+Python 3.14 wheel, causing pip to try and fail to build NumPy from source.
+
 ```bash
 # 1. set up environment
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+py -3.12 -m venv .venv            # Windows
+.venv\Scripts\Activate.ps1        # Windows PowerShell
+python -m pip install -r requirements.txt
 
-# 2. add your Gemini API key (free at https://aistudio.google.com/apikey)
-cp .env.example .env
-# open .env and paste your key in
+# macOS/Linux:
+# python3.12 -m venv .venv
+# source .venv/bin/activate
+# python -m pip install -r requirements.txt
+
+# 2. create .env and add your Gemini API key
+# GOOGLE_API_KEY=your_api_key_here
 
 # 3. get some PDFs into docs/ (or generate sample ones)
 python scripts/make_sample_docs.py
