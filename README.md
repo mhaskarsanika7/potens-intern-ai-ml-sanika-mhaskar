@@ -168,10 +168,3 @@ Each PDF page is broken into small overlapping pieces of text ("chunks") before 
 - Streaming answers in the UI instead of a full-response spinner.
 
 - A small saved test set (question → expected answer/source) to catch regressions when the chunking or prompt changes.
-
-
-## AI USE LOG
-
-- Claude (Anthropic): ~[45000] — architecture, all app code, SDK migration debugging.
-
-- ChatGPT: ~[8000] — problem understanding, project working flow, project structure
